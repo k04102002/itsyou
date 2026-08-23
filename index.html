@@ -216,7 +216,7 @@ function onScroll(){ const H=document.documentElement.scrollHeight-innerHeight;
   const r=H>0?clamp(scrollY/H,0,1):0; const e=r<.5?2*r*r:1-Math.pow(-2*r+2,2)/2; targetRadius=FAR_R+(CORE_R-FAR_R)*e; }
 addEventListener('scroll',onScroll,{passive:true});
 addEventListener('pointerdown',e=>{ if(e.target.closest('button,input'))return; dragging=true; lx=e.clientX; ly=e.clientY; });
-addEventListener('pointermove',e=>{ if(!dragging)return; azV+=-(e.clientX-lx)*0.005; polarV+=-(e.clientY-ly)*0.005; lx=e.clientX; ly=e.clientY; });
+addEventListener('pointermove',e=>{ if(!dragging)return; azV+=-(e.clientX-lx)*0.0025; polarV+=-(e.clientY-ly)*0.005; lx=e.clientX; ly=e.clientY; });
 addEventListener('pointerup',()=>dragging=false); addEventListener('pointercancel',()=>dragging=false);
 
 new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting)e.target.classList.add('seen'); }),{threshold:.2})
