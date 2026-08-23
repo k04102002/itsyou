@@ -251,7 +251,7 @@ function buildUsQuad(img){
   const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat); m.position.z=CORE_Z+40; m.renderOrder=5; scene.add(m); return m;
 }
 /* camera keyframes built after portraits known */
-let KF=[];
+let KF=[{s:0,p:[0,0,200],l:[0,0,0]},{s:1,p:[0,0,200],l:[0,0,0]}];
 function buildKeyframes(){
   const eA=cover?cover.eyeWorld:new THREE.Vector3(0,0,0);
   const eB=closing?closing.eyeWorld:new THREE.Vector3(0,0,CORE_Z);
@@ -272,6 +272,7 @@ function buildKeyframes(){
 }
 const _p=new THREE.Vector3(), _l=new THREE.Vector3();
 function cameraAt(s){
+  if(!KF.length) return;
   let a=KF[0], b=KF[KF.length-1];
   for(let i=0;i<KF.length-1;i++){ if(s>=KF[i].s && s<=KF[i+1].s){ a=KF[i]; b=KF[i+1]; break; } }
   const t=smooth(a.s,b.s,s);
