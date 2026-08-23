@@ -15,11 +15,11 @@
     overflow-x:hidden; -webkit-font-smoothing:antialiased; user-select:none; -webkit-user-select:none; touch-action:pan-y; }
   canvas#scene{ position:fixed; inset:0; z-index:-2; display:block; width:100%; height:100vh; }
   .vignette{ position:fixed; inset:0; z-index:-1; pointer-events:none;
-    background:radial-gradient(78% 62% at 50% 48%, transparent 55%, rgba(3,1,6,.68) 100%); }
-  #scroller{ height:760vh; }
+    background:radial-gradient(80% 64% at 50% 48%, transparent 58%, rgba(3,1,6,.6) 100%); }
+  #scroller{ height:780vh; }
   .grad{ background:linear-gradient(100deg,var(--violet),var(--magenta) 45%,var(--pink)); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .caption{ position:fixed; left:0; right:0; bottom:13vh; text-align:center; z-index:5; pointer-events:none; padding:0 8vw;
-    opacity:0; transition:opacity .6s ease; font-weight:300; font-size:clamp(1.1rem,3vmin,1.55rem); line-height:1.6; text-shadow:0 2px 30px #000; }
+    opacity:0; transition:opacity .6s ease; font-weight:300; font-size:clamp(1.1rem,3vmin,1.55rem); line-height:1.6; text-shadow:0 2px 30px #000,0 0 14px #000; }
   .caption.show{ opacity:1; } .caption .big{ font-family:'Caveat',cursive; font-weight:600; font-size:1.7em; }
   .cue{ position:fixed; left:0; right:0; bottom:6vh; text-align:center; z-index:5; color:var(--pink); font-size:.78rem;
     letter-spacing:.28em; text-transform:uppercase; opacity:.6; animation:bob 2.6s ease-in-out infinite; }
@@ -54,10 +54,10 @@
   </div>
   <button id="audioBtn" aria-label="Toggle music"></button>
 
-  <!-- ===== YOUR WORDS (each shows during its moment) ===== -->
-  <div class="caption" data-from="0.02" data-to="0.20">Look at me for a second.</div>
-  <div class="caption" data-from="0.26" data-to="0.38">Come closer — into my eyes.</div>
-  <div class="caption" data-from="0.50" data-to="0.62">Everything in here is you.</div>
+  <!-- ===== YOUR WORDS ===== -->
+  <div class="caption" data-from="0.01" data-to="0.16">Look at me for a second.</div>
+  <div class="caption" data-from="0.24" data-to="0.37">Come closer — into my eyes.</div>
+  <div class="caption" data-from="0.48" data-to="0.62">Everything in here is you.</div>
   <div class="caption" data-from="0.66" data-to="0.80">And this is how you look to me.</div>
   <div class="caption" data-from="0.95" data-to="1.0"><span class="big grad">Always yours, [your name]</span></div>
   <div class="cue" id="cue">scroll</div>
@@ -133,7 +133,7 @@ async function buildAtlas(sources){
   return {texture:tex,offsets,count:N};
 }
 
-/* ===================== nebula (restored, unchanged look) ===================== */
+/* ===================== nebula (unchanged look) ===================== */
 const VERT=`precision highp float; uniform mat4 projectionMatrix, viewMatrix, modelMatrix;
 attribute vec3 position; attribute vec2 uv; attribute vec3 iPos; attribute float iScale; attribute vec2 iOff; attribute float iSeed; attribute vec3 iColor;
 uniform vec2 uCell; uniform float uPulse; uniform float uTime; uniform float uSizeMul;
@@ -199,27 +199,27 @@ function addAmbient(){
   scene.add(core); ambient={haze,core};
 }
 
-/* ===================== particle portrait ===================== */
+/* ===================== particle portrait (dense, bright, photo-like) ===================== */
 const P_VERT=`precision highp float; uniform mat4 projectionMatrix, modelViewMatrix;
 attribute vec3 position; attribute vec3 aColor; attribute vec3 aScatter; attribute float aSeed;
 uniform float uTime, uScatter, uInhale, uFade, uSize; uniform vec3 uEye;
 varying vec3 vColor; varying float vA;
 void main(){ vec3 p=mix(position, position+aScatter, uScatter);
-  p+=vec3(sin(uTime*1.3+aSeed*6.28),cos(uTime*1.1+aSeed*5.0),sin(uTime*0.7+aSeed*4.0))*0.5;
+  p+=vec3(sin(uTime*1.2+aSeed*6.28),cos(uTime*1.0+aSeed*5.0),sin(uTime*0.6+aSeed*4.0))*0.35;
   p=mix(p, uEye, uInhale*(0.25+0.75*aSeed));
   vec4 mv=modelViewMatrix*vec4(p,1.0);
-  gl_PointSize=uSize*(260.0/max(1.0,-mv.z)); gl_Position=projectionMatrix*mv;
+  gl_PointSize=uSize*(300.0/max(1.0,-mv.z)); gl_Position=projectionMatrix*mv;
   vColor=aColor; vA=uFade; }`;
-const P_FRAG=`precision highp float; varying vec3 vColor; varying float vA;
+const P_FRAG=`precision highp float; uniform float uBright; varying vec3 vColor; varying float vA;
 void main(){ if(vA<0.01) discard; vec2 c=gl_PointCoord-0.5; float d=length(c); if(d>0.5) discard;
-  float a=smoothstep(0.5,0.18,d)*vA; gl_FragColor=vec4(vColor,a); }`;
+  float a=smoothstep(0.5,0.12,d)*vA; gl_FragColor=vec4(vColor*uBright,a); }`;
 function buildPortrait(img, eye, zPlane){
-  const GW=MOBILE?120:150, ratio=img.height/img.width, GH=Math.max(1,Math.round(GW*ratio));
+  const GW=MOBILE?150:210, ratio=img.height/img.width, GH=Math.max(1,Math.round(GW*ratio));
   const cnv=document.createElement('canvas'); cnv.width=GW; cnv.height=GH; const cx=cnv.getContext('2d');
   cx.drawImage(img,0,0,GW,GH); const d=cx.getImageData(0,0,GW,GH).data;
-  const visH=250, cell=visH/GH; const pts=[],cols=[],scat=[],seeds=[];
-  for(let j=0;j<GH;j++) for(let i=0;i<GW;i++){ const k=(j*GW+i)*4; if(d[k+3]<20) continue;
-    pts.push((i-GW/2+0.5)*cell,(GH/2-j-0.5)*cell,zPlane+(Math.random()-0.5)*2);
+  const visH=260, cell=visH/GH; const pts=[],cols=[],scat=[],seeds=[];
+  for(let j=0;j<GH;j++) for(let i=0;i<GW;i++){ const k=(j*GW+i)*4; if(d[k+3]<16) continue;
+    pts.push((i-GW/2+0.5)*cell,(GH/2-j-0.5)*cell,zPlane+(Math.random()-0.5)*1.6);
     cols.push(d[k]/255,d[k+1]/255,d[k+2]/255);
     const dir=[Math.random()*2-1,Math.random()*2-1,Math.random()*2-1],m=150/(Math.hypot(dir[0],dir[1],dir[2])||1);
     scat.push(dir[0]*m,dir[1]*m,dir[2]*m); seeds.push(Math.random()); }
@@ -228,7 +228,7 @@ function buildPortrait(img, eye, zPlane){
   g.setAttribute('aColor',new THREE.Float32BufferAttribute(cols,3));
   g.setAttribute('aScatter',new THREE.Float32BufferAttribute(scat,3));
   g.setAttribute('aSeed',new THREE.Float32BufferAttribute(seeds,1));
-  const uni={uTime,uScatter:{value:1},uInhale:{value:0},uFade:{value:0},uSize:{value:MOBILE?2.6:2.2},
+  const uni={uTime,uScatter:{value:0},uInhale:{value:0},uFade:{value:0},uBright:{value:1.4},uSize:{value:MOBILE?4.4:3.6},
     uEye:{value:new THREE.Vector3((eye[0]-0.5)*GW*cell,(0.5-eye[1])*GH*cell,zPlane)}};
   const mat=new THREE.RawShaderMaterial({uniforms:uni,vertexShader:P_VERT,fragmentShader:P_FRAG,
     transparent:true,depthWrite:false,depthTest:false,blending:THREE.NormalBlending});
@@ -238,20 +238,21 @@ function buildPortrait(img, eye, zPlane){
 
 /* ===================== timeline ===================== */
 let coupleA=null, coreHer=null, coupleB=null, cinematic=false;
-let KF=[{s:0,p:[0,0,200],l:[0,0,0]},{s:1,p:[0,0,200],l:[0,0,0]}];   // safe default (never empty)
+let KF=[{s:0,p:[0,0,190],l:[0,0,0]},{s:1,p:[0,0,190],l:[0,0,0]}];
 function buildKeyframes(){
   if(!cinematic){ KF=[{s:0,p:[0,0,10],l:[0,0,CORE_Z]},{s:1,p:[0,0,CORE_Z+22],l:[0,0,CORE_Z]}]; return; }
   const A=coupleA.eyeWorld, B=coreHer.eyeWorld;
   KF=[
-    {s:0.00,p:[0,0,200],l:[0,0,0]},
-    {s:0.26,p:[A.x*0.7,A.y*0.7,60],l:[A.x,A.y,0]},
-    {s:0.38,p:[A.x,A.y,-14],l:[A.x,A.y,-70]},
-    {s:0.48,p:[0,0,CORE_Z+170],l:[0,0,CORE_Z]},
-    {s:0.60,p:[0,0,CORE_Z+20],l:[0,0,CORE_Z]},
-    {s:0.72,p:[0,0,CORE_Z-80],l:[B.x,B.y,HER_Z]},
-    {s:0.84,p:[B.x*0.7,B.y*0.7,HER_Z+60],l:[B.x,B.y,HER_Z]},
-    {s:0.93,p:[B.x,B.y,HER_Z-14],l:[B.x,B.y,HER_Z-70]},
-    {s:1.00,p:[0,0,END_Z+170],l:[0,0,END_Z]},
+    {s:0.00,p:[0,0,190],l:[0,0,0]},        // couple photo, sharp & full
+    {s:0.14,p:[0,0,168],l:[0,0,0]},        // gentle push, still whole photo
+    {s:0.26,p:[A.x*0.7,A.y*0.7,60],l:[A.x,A.y,0]},   // move to your eye
+    {s:0.38,p:[A.x,A.y,-14],l:[A.x,A.y,-70]},        // dive through your eye
+    {s:0.48,p:[0,0,CORE_Z+170],l:[0,0,CORE_Z]},      // inside nebula
+    {s:0.60,p:[0,0,CORE_Z+30],l:[0,0,CORE_Z]},       // at the core (her forms)
+    {s:0.72,p:[0,0,CORE_Z-70],l:[B.x,B.y,HER_Z]},    // turn toward her photo
+    {s:0.84,p:[B.x*0.7,B.y*0.7,HER_Z+60],l:[B.x,B.y,HER_Z]}, // move to her eye
+    {s:0.93,p:[B.x,B.y,HER_Z-14],l:[B.x,B.y,HER_Z-70]},      // dive through her eye
+    {s:1.00,p:[0,0,END_Z+165],l:[0,0,END_Z]},        // land on couple photo
   ];
 }
 const _p=new THREE.Vector3(), _l=new THREE.Vector3();
@@ -265,10 +266,10 @@ function cameraAt(s){
   camera.position.copy(_p); camera.lookAt(_l);
 }
 
-/* spin the nebula only */
-let spin=0, spinV=0, dragging=false, lx=0;
-addEventListener('pointerdown',e=>{ if(e.target.closest('button,input'))return; dragging=true; lx=e.clientX; });
-addEventListener('pointermove',e=>{ if(!dragging)return; spinV+=-(e.clientX-lx)*0.0006; lx=e.clientX; });
+/* ===================== 360° nebula rotation (drag) ===================== */
+let yaw=0, yawV=0, pitch=0, pitchV=0, dragging=false, lx=0, ly=0;
+addEventListener('pointerdown',e=>{ if(e.target.closest('button,input'))return; dragging=true; lx=e.clientX; ly=e.clientY; });
+addEventListener('pointermove',e=>{ if(!dragging)return; yawV+=-(e.clientX-lx)*0.0011; pitchV+=-(e.clientY-ly)*0.0007; lx=e.clientX; ly=e.clientY; });
 addEventListener('pointerup',()=>dragging=false); addEventListener('pointercancel',()=>dragging=false);
 
 let sTarget=0, sSmooth=0;
@@ -289,16 +290,21 @@ renderer.setAnimationLoop(()=>{
   pulseSmooth+=(target-pulseSmooth)*(target>pulseSmooth?0.35:0.08); uPulse.value=pulseSmooth;
 
   cameraAt(s);
-  uNebFade.value = cinematic ? (smooth(0.34,0.48,s)*(1-smooth(0.64,0.74,s))) : 1;
-  spin+=spinV+0.0016; spinV*=0.92; if(galaxy) galaxy.rotation.y=spin;
-  if(ambient){ ambient.haze.rotation.y=spin*0.6; ambient.haze.material.opacity=(0.38+0.34*pulseSmooth)*(cinematic?uNebFade.value:1);
+  uNebFade.value = cinematic ? (smooth(0.40,0.52,s)*(1-smooth(0.66,0.76,s))) : 1;
+
+  // 360 rotation: drag tumbles the nebula (full yaw, limited pitch) + gentle auto-spin
+  yaw+=yawV+0.0018; yawV*=0.92; pitch=clamp(pitch+pitchV,-0.9,0.9); pitchV*=0.9;
+  if(galaxy){ galaxy.rotation.y=yaw; galaxy.rotation.x=pitch; }
+  if(ambient){ ambient.haze.rotation.y=yaw*0.7; ambient.haze.rotation.x=pitch*0.7;
+    ambient.haze.material.opacity=(0.38+0.34*pulseSmooth)*(cinematic?uNebFade.value:1);
     ambient.core.children.forEach(sp=>{ sp.scale.setScalar(sp.userData.base*(1+pulseSmooth*0.55));
       sp.material.opacity=sp.userData.op*(0.7+pulseSmooth*0.7)*(cinematic?uNebFade.value:1); }); }
 
-  if(coupleA){ coupleA.uni.uScatter.value=1-smooth(0.0,0.14,s); coupleA.uni.uInhale.value=smooth(0.26,0.40,s); coupleA.uni.uFade.value=1-smooth(0.28,0.40,s); }
-  if(coreHer){ coreHer.uni.uScatter.value=1-smooth(0.58,0.70,s); coreHer.uni.uInhale.value=smooth(0.84,0.94,s);
-    coreHer.uni.uFade.value=smooth(0.56,0.68,s)*(1-smooth(0.87,0.95,s)); }
-  if(coupleB){ coupleB.uni.uScatter.value=1-smooth(0.92,1.0,s); coupleB.uni.uFade.value=smooth(0.90,0.99,s); }
+  // portraits: start SHARP, dissolve into your eye; her forms at core then dissolves into her eye; couple reassembles
+  if(coupleA){ coupleA.uni.uScatter.value=smooth(0.14,0.36,s)*0.5; coupleA.uni.uInhale.value=smooth(0.24,0.40,s); coupleA.uni.uFade.value=1-smooth(0.30,0.40,s); }
+  if(coreHer){ coreHer.uni.uScatter.value=(1-smooth(0.56,0.70,s))+smooth(0.82,0.93,s)*0.5;
+    coreHer.uni.uInhale.value=smooth(0.82,0.93,s); coreHer.uni.uFade.value=smooth(0.56,0.68,s)*(1-smooth(0.87,0.94,s)); }
+  if(coupleB){ coupleB.uni.uScatter.value=1-smooth(0.90,1.0,s); coupleB.uni.uFade.value=smooth(0.90,0.99,s); }
 
   captions.forEach(c=>{ const f=+c.dataset.from,t=+c.dataset.to; c.classList.toggle('show', s>=f&&s<=t); });
   document.getElementById('cue').style.opacity = s<0.03?0.6:0;
@@ -325,10 +331,9 @@ async function tryUnlock(){
     if(vault.cover){ try{ coupleImg=await bytesToImage(await dec(key,vault.cover)); }catch(_){}}
     if(vault.closing){ try{ herImg=await bytesToImage(await dec(key,vault.closing)); }catch(_){}}
     if(coupleImg){
-      coupleA=buildPortrait(coupleImg, (vault.cover&&vault.cover.eye)||[0.5,0.42], 0);
-      coupleB=buildPortrait(coupleImg, [0.5,0.5], END_Z);
-      const her=herImg||coupleImg;
-      coreHer=buildPortrait(her, (vault.closing&&vault.closing.eye)||[0.5,0.42], HER_Z);
+      coupleA=buildPortrait(coupleImg,(vault.cover&&vault.cover.eye)||[0.5,0.42],0);
+      coupleB=buildPortrait(coupleImg,[0.5,0.5],END_Z);
+      coreHer=buildPortrait(herImg||coupleImg,(vault.closing&&vault.closing.eye)||[0.5,0.42],HER_Z);
       cinematic=true;
     }
     const items=vault.items.slice(0,CONFIG.maxPhotos), imgs=[];
