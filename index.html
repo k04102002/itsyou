@@ -8,23 +8,34 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
 <style>
-  :root{ --bg:#050308; --ink:#f4ecff; --violet:#8b5cf6; --magenta:#d946ef; --pink:#f472b6; --lilac:#e9d5ff; --glass:rgba(30,16,48,.5); }
+  :root{ --bg:#07040e; --ink:#f4ecff; --violet:#8b5cf6; --magenta:#d946ef; --pink:#f472b6; --lilac:#e9d5ff; --glass:rgba(30,16,48,.5); --glow:rgba(190,120,255,.25); }
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body:not(.entered){ overflow:hidden; height:100vh; }
   body{ background:var(--bg); color:var(--ink); font-family:'Space Grotesk',system-ui,sans-serif;
-    overflow-x:hidden; -webkit-font-smoothing:antialiased; user-select:none; -webkit-user-select:none; touch-action:pan-y; }
+    display:flex; flex-flow:column; align-items:center; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+    user-select:none; -webkit-user-select:none; touch-action:pan-y; }
   canvas#scene{ position:fixed; inset:0; z-index:-2; display:block; width:100%; height:100vh; }
   .vignette{ position:fixed; inset:0; z-index:-1; pointer-events:none;
-    background:radial-gradient(80% 64% at 50% 48%, transparent 58%, rgba(3,1,6,.6) 100%); }
-  #scroller{ height:780vh; }
+    background:radial-gradient(75% 60% at 50% 48%, transparent 52%, rgba(3,1,8,.72) 100%); }
   .grad{ background:linear-gradient(100deg,var(--violet),var(--magenta) 45%,var(--pink)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .caption{ position:fixed; left:0; right:0; bottom:13vh; text-align:center; z-index:5; pointer-events:none; padding:0 8vw;
-    opacity:0; transition:opacity .6s ease; font-weight:300; font-size:clamp(1.1rem,3vmin,1.55rem); line-height:1.6; text-shadow:0 2px 30px #000,0 0 14px #000; }
-  .caption.show{ opacity:1; } .caption .big{ font-family:'Caveat',cursive; font-weight:600; font-size:1.7em; }
-  .cue{ position:fixed; left:0; right:0; bottom:6vh; text-align:center; z-index:5; color:var(--pink); font-size:.78rem;
-    letter-spacing:.28em; text-transform:uppercase; opacity:.6; animation:bob 2.6s ease-in-out infinite; }
-  .cue::after{ content:"\2193"; display:block; margin-top:.3rem; font-size:1rem; }
-  @keyframes bob{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(7px);opacity:.9}}
+  .hero{ min-height:100vh; width:100%; display:flex; flex-flow:column; align-items:center; justify-content:center;
+    text-align:center; gap:.5rem; padding:2rem; pointer-events:none; }
+  .hero h1{ font-weight:700; margin:0; font-size:clamp(2.6rem,10vmin,6rem); line-height:1; letter-spacing:-.02em; filter:drop-shadow(0 6px 40px var(--glow)); }
+  .hero .sub{ color:var(--lilac); opacity:.8; font-size:clamp(1rem,2.6vmin,1.3rem); letter-spacing:.05em; }
+  .cue{ margin-top:2rem; color:var(--pink); font-size:.82rem; letter-spacing:.26em; text-transform:uppercase; opacity:.65; animation:bob 2.6s ease-in-out infinite; }
+  .cue::after{ content:"\2193"; display:block; margin-top:.35rem; font-size:1.1rem; }
+  @keyframes bob{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(7px);opacity:1}}
+  article{ width:min(90vw,32rem); padding:1.9rem 2.2rem; margin:70vh auto; position:relative;
+    background:linear-gradient(180deg,rgba(48,26,70,.42),rgba(22,12,34,.55));
+    border:1px solid rgba(233,213,255,.2); border-radius:20px;
+    box-shadow:0 24px 70px -26px rgba(0,0,0,.85), 0 0 60px -14px var(--glow), inset 0 1px 0 rgba(255,255,255,.05);
+    backdrop-filter:blur(9px); font-weight:300; line-height:1.7; font-size:clamp(1.08rem,2.5vmin,1.35rem);
+    opacity:0; transform:translateY(26px); transition:opacity .9s ease, transform .9s ease; }
+  article.seen{ opacity:1; transform:none; }
+  article h2{ font-weight:700; font-size:1.1em; margin:0 0 .5rem; }
+  article.finale{ text-align:center; }
+  .sig{ font-family:'Caveat',cursive; font-size:1.7em; display:block; margin-top:.4rem; }
+  .tail{ height:60vh; }
   #gate{ position:fixed; inset:0; z-index:30; display:flex; flex-flow:column; align-items:center; justify-content:center;
     gap:1.3rem; text-align:center; padding:2rem; background:radial-gradient(80% 60% at 50% 42%, rgba(24,12,40,.6), rgba(3,1,7,.96));
     backdrop-filter:blur(6px); transition:opacity 1s ease; }
@@ -55,18 +66,21 @@
   <button id="audioBtn" aria-label="Toggle music"></button>
 
   <!-- ===== YOUR WORDS ===== -->
-  <div class="caption" data-from="0.01" data-to="0.16">Look at me for a second.</div>
-  <div class="caption" data-from="0.24" data-to="0.37">Come closer — into my eyes.</div>
-  <div class="caption" data-from="0.48" data-to="0.62">Everything in here is you.</div>
-  <div class="caption" data-from="0.66" data-to="0.80">And this is how you look to me.</div>
-  <div class="caption" data-from="0.95" data-to="1.0"><span class="big grad">Always yours, [your name]</span></div>
-  <div class="cue" id="cue">scroll</div>
-  <div id="scroller"></div>
+  <section class="hero">
+    <h1 class="grad">Look up</h1>
+    <div class="sub">every star here is you</div>
+    <div class="cue">scroll to fall in</div>
+  </section>
+  <article><h2>All of you, at once</h2>Hundreds of little moments of you, glowing in the dark. Spin it. Take your time.</article>
+  <article><h2>Falling in</h2>Keep going — you're moving through them now, toward the light at the center.</article>
+  <article class="finale"><h2>This is how I see you</h2>A whole universe, and every part of it is you.
+    <span class="sig grad">Always yours,</span><span class="sig grad">[your name]</span></article>
+  <div class="tail"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 /* ===================== CONFIG ===================== */
-const CONFIG = { vaultFile:'vault.json', song:'song.mp3.mp3', songVolume:0.65, colorGrade:0.12, maxPhotos:500 };
+const CONFIG = { vaultFile:'vault.json', song:'song.mp3.mp3', songVolume:0.65, spin:true, colorGrade:0.14, maxPhotos:500 };
 const CHECK='nebula-of-you';
 
 /* ===================== crypto ===================== */
@@ -95,18 +109,17 @@ function startMusicNow(){
   audio.volume=CONFIG.songVolume; audio.play().catch(()=>{});
 }
 
-/* ===================== three basics ===================== */
+/* ===================== three ===================== */
 const MOBILE=matchMedia('(max-width:820px)').matches;
-const SHELL=120, CORE_Z=-320, HER_Z=-480, END_Z=-640;
+const SHELL=120, FAR_R=330, CORE_R=5;
 const cvs=document.getElementById('scene');
 const renderer=new THREE.WebGLRenderer({canvas:cvs,alpha:true,antialias:!MOBILE});
 renderer.setClearAlpha(0);
 const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,0.1,7000);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.5,4000);
 const clock=new THREE.Clock();
-const uPulse={value:0}, uTime={value:0}, uCell={value:new THREE.Vector2(1,1)}, uNebFade={value:1};
-const lerp=(a,b,t)=>a+(b-a)*t, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const smooth=(a,b,t)=>{ t=clamp((t-a)/(b-a),0,1); return t*t*(3-2*t); };
+const uPulse={value:0}, uTime={value:0}, uCell={value:new THREE.Vector2(1,1)};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 function discTexture(){ const s=64,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
   const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
@@ -120,7 +133,6 @@ function placeholderThumb(i,size){ const c=document.createElement('canvas');c.wi
 function loadImage(url){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});}
 function bytesToImage(buf){ return loadImage(URL.createObjectURL(new Blob([buf],{type:'image/jpeg'}))); }
 
-/* ===================== atlas ===================== */
 async function buildAtlas(sources){
   const N=sources.length, CELL=N>300?96:128, PAD=4, STRIDE=CELL+PAD;
   const cols=Math.ceil(Math.sqrt(N)), rows=Math.ceil(N/cols), cw=cols*STRIDE, ch=rows*STRIDE;
@@ -133,7 +145,6 @@ async function buildAtlas(sources){
   return {texture:tex,offsets,count:N};
 }
 
-/* ===================== nebula (unchanged look) ===================== */
 const VERT=`precision highp float; uniform mat4 projectionMatrix, viewMatrix, modelMatrix;
 attribute vec3 position; attribute vec2 uv; attribute vec3 iPos; attribute float iScale; attribute vec2 iOff; attribute float iSeed; attribute vec3 iColor;
 uniform vec2 uCell; uniform float uPulse; uniform float uTime; uniform float uSizeMul;
@@ -142,13 +153,13 @@ void main(){ vCorner=position.xy; vUv=iOff+uv*uCell; vColor=iColor;
   vec3 c=iPos; float t=uTime*0.12+iSeed*6.2831; c+=vec3(sin(t),cos(t*1.13),sin(t*0.7))*2.0;
   vec4 mv=viewMatrix*modelMatrix*vec4(c,1.0); mv.xy+=position.xy*(iScale*uSizeMul*(1.0+uPulse*0.4));
   gl_Position=projectionMatrix*mv; }`;
-const FRAG_PHOTO=`precision highp float; uniform sampler2D map; uniform float uGrade; uniform vec3 uGradeColor; uniform float uPulse; uniform float uNebFade;
+const FRAG_PHOTO=`precision highp float; uniform sampler2D map; uniform float uGrade; uniform vec3 uGradeColor; uniform float uPulse;
 varying vec2 vUv; varying vec2 vCorner;
 void main(){ float d=length(vCorner)*2.0; if(1.0-smoothstep(0.86,1.0,d)<0.5) discard;
-  vec3 col=texture2D(map,vUv).rgb; col=mix(col,col*uGradeColor,uGrade); col+=col*uPulse*0.3; gl_FragColor=vec4(col,uNebFade); }`;
-const FRAG_HALO=`precision highp float; uniform float uPulse; uniform float uOpacity; uniform float uNebFade; varying vec2 vCorner; varying vec3 vColor;
+  vec3 col=texture2D(map,vUv).rgb; col=mix(col,col*uGradeColor,uGrade); col+=col*uPulse*0.3; gl_FragColor=vec4(col,1.0); }`;
+const FRAG_HALO=`precision highp float; uniform float uPulse; uniform float uOpacity; varying vec2 vCorner; varying vec3 vColor;
 void main(){ float d=length(vCorner)*2.0; float a=pow(clamp(1.0-d,0.0,1.0),2.0);
-  gl_FragColor=vec4(vColor*(0.7+uPulse*0.9), a*uOpacity*(0.65+uPulse*0.6)*uNebFade); }`;
+  gl_FragColor=vec4(vColor*(0.7+uPulse*0.9), a*uOpacity*(0.65+uPulse*0.6)); }`;
 const PALETTE=[[0.55,0.4,1.0],[0.85,0.35,0.95],[0.98,0.55,0.85],[0.6,0.7,1.0],[0.8,0.6,1.0]];
 let galaxy=null, ambient=null;
 function buildNebula(atlas){
@@ -167,13 +178,13 @@ function buildNebula(atlas){
     g.setAttribute('iPos',new THREE.InstancedBufferAttribute(iPos,3)); g.setAttribute('iScale',new THREE.InstancedBufferAttribute(iScale,1));
     g.setAttribute('iOff',new THREE.InstancedBufferAttribute(iOff,2)); g.setAttribute('iSeed',new THREE.InstancedBufferAttribute(iSeed,1));
     g.setAttribute('iColor',new THREE.InstancedBufferAttribute(iColor,3)); return g; }
-  const grp=new THREE.Group(); grp.position.z=CORE_Z;
-  const haloMat=new THREE.RawShaderMaterial({uniforms:{uCell,uPulse,uTime,uSizeMul:{value:2.7},uOpacity:{value:0.5},uNebFade},
+  const grp=new THREE.Group();
+  const haloMat=new THREE.RawShaderMaterial({uniforms:{uCell,uPulse,uTime,uSizeMul:{value:2.7},uOpacity:{value:0.5}},
     vertexShader:VERT,fragmentShader:FRAG_HALO,transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending});
   const halo=new THREE.Mesh(geom(),haloMat); halo.frustumCulled=false; grp.add(halo);
   const photoMat=new THREE.RawShaderMaterial({uniforms:{map:{value:atlas.texture},uCell,uPulse,uTime,uSizeMul:{value:1.0},
-    uGrade:{value:CONFIG.colorGrade},uGradeColor:{value:new THREE.Vector3(0.72,0.55,1.0)},uNebFade},
-    vertexShader:VERT,fragmentShader:FRAG_PHOTO,transparent:true,depthTest:true,depthWrite:true});
+    uGrade:{value:CONFIG.colorGrade},uGradeColor:{value:new THREE.Vector3(0.72,0.55,1.0)}},
+    vertexShader:VERT,fragmentShader:FRAG_PHOTO,transparent:false,depthTest:true,depthWrite:true});
   const photos=new THREE.Mesh(geom(),photoMat); photos.frustumCulled=false; grp.add(photos);
   scene.add(grp); galaxy=grp;
 }
@@ -181,101 +192,36 @@ function addAmbient(){
   const HN=MOBILE?1600:3600; const hp=new Float32Array(HN*3),hc=new Float32Array(HN*3),col=new THREE.Color();
   for(let i=0;i<HN;i++){ const u=Math.random()*2-1,th=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u);
     let rad=SHELL*(0.35+Math.random()*0.8); if(Math.random()<0.25) rad*=1.3+Math.random()*0.7;
-    hp[i*3]=r*Math.cos(th)*rad;hp[i*3+1]=u*rad;hp[i*3+2]=r*Math.sin(th)*rad+CORE_Z;
+    hp[i*3]=r*Math.cos(th)*rad;hp[i*3+1]=u*rad;hp[i*3+2]=r*Math.sin(th)*rad;
     const p=PALETTE[(Math.random()*PALETTE.length)|0]; col.setRGB(p[0],p[1],p[2]); hc[i*3]=col.r;hc[i*3+1]=col.g;hc[i*3+2]=col.b; }
   const hg=new THREE.BufferGeometry(); hg.setAttribute('position',new THREE.BufferAttribute(hp,3)); hg.setAttribute('color',new THREE.BufferAttribute(hc,3));
   const haze=new THREE.Points(hg,new THREE.PointsMaterial({size:MOBILE?9:7,map:DISC,vertexColors:true,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));
   haze.frustumCulled=false; scene.add(haze);
   const SN=MOBILE?900:1700,sp=new Float32Array(SN*3);
-  for(let i=0;i<SN;i++){ const u=Math.random()*2-1,th=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u),rad=600+Math.random()*1400;
-    sp[i*3]=r*Math.cos(th)*rad;sp[i*3+1]=u*rad;sp[i*3+2]=r*Math.sin(th)*rad+CORE_Z; }
+  for(let i=0;i<SN;i++){ const u=Math.random()*2-1,th=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u),rad=600+Math.random()*1200;
+    sp[i*3]=r*Math.cos(th)*rad;sp[i*3+1]=u*rad;sp[i*3+2]=r*Math.sin(th)*rad; }
   const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
-  const stars=new THREE.Points(sg,new THREE.PointsMaterial({size:2.4,map:DISC,color:0xe9d5ff,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending}));
-  stars.frustumCulled=false; scene.add(stars);
-  const core=new THREE.Group(); core.position.z=CORE_Z;
+  scene.add(new THREE.Points(sg,new THREE.PointsMaterial({size:2.4,map:DISC,color:0xe9d5ff,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending})));
+  const core=new THREE.Group();
   [[0xffffff,34,.9],[0xe9b8ff,80,.6],[0xd946ef,150,.35],[0x8b5cf6,260,.18]].forEach(([c,sz,op])=>{
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:DISC,color:c,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false}));
     s.scale.setScalar(sz); s.userData={base:sz,op}; core.add(s); });
   scene.add(core); ambient={haze,core};
 }
 
-/* ===================== particle portrait (dense, bright, photo-like) ===================== */
-const P_VERT=`precision highp float; uniform mat4 projectionMatrix, modelViewMatrix;
-attribute vec3 position; attribute vec3 aColor; attribute vec3 aScatter; attribute float aSeed;
-uniform float uTime, uScatter, uInhale, uFade, uSize; uniform vec3 uEye;
-varying vec3 vColor; varying float vA;
-void main(){ vec3 p=mix(position, position+aScatter, uScatter);
-  p+=vec3(sin(uTime*1.2+aSeed*6.28),cos(uTime*1.0+aSeed*5.0),sin(uTime*0.6+aSeed*4.0))*0.35;
-  p=mix(p, uEye, uInhale*(0.25+0.75*aSeed));
-  vec4 mv=modelViewMatrix*vec4(p,1.0);
-  gl_PointSize=uSize*(300.0/max(1.0,-mv.z)); gl_Position=projectionMatrix*mv;
-  vColor=aColor; vA=uFade; }`;
-const P_FRAG=`precision highp float; uniform float uBright; varying vec3 vColor; varying float vA;
-void main(){ if(vA<0.01) discard; vec2 c=gl_PointCoord-0.5; float d=length(c); if(d>0.5) discard;
-  float a=smoothstep(0.5,0.12,d)*vA; gl_FragColor=vec4(vColor*uBright,a); }`;
-function buildPortrait(img, eye, zPlane){
-  const GW=MOBILE?150:210, ratio=img.height/img.width, GH=Math.max(1,Math.round(GW*ratio));
-  const cnv=document.createElement('canvas'); cnv.width=GW; cnv.height=GH; const cx=cnv.getContext('2d');
-  cx.drawImage(img,0,0,GW,GH); const d=cx.getImageData(0,0,GW,GH).data;
-  const visH=260, cell=visH/GH; const pts=[],cols=[],scat=[],seeds=[];
-  for(let j=0;j<GH;j++) for(let i=0;i<GW;i++){ const k=(j*GW+i)*4; if(d[k+3]<16) continue;
-    pts.push((i-GW/2+0.5)*cell,(GH/2-j-0.5)*cell,zPlane+(Math.random()-0.5)*1.6);
-    cols.push(d[k]/255,d[k+1]/255,d[k+2]/255);
-    const dir=[Math.random()*2-1,Math.random()*2-1,Math.random()*2-1],m=150/(Math.hypot(dir[0],dir[1],dir[2])||1);
-    scat.push(dir[0]*m,dir[1]*m,dir[2]*m); seeds.push(Math.random()); }
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
-  g.setAttribute('aColor',new THREE.Float32BufferAttribute(cols,3));
-  g.setAttribute('aScatter',new THREE.Float32BufferAttribute(scat,3));
-  g.setAttribute('aSeed',new THREE.Float32BufferAttribute(seeds,1));
-  const uni={uTime,uScatter:{value:0},uInhale:{value:0},uFade:{value:0},uBright:{value:1.4},uSize:{value:MOBILE?4.4:3.6},
-    uEye:{value:new THREE.Vector3((eye[0]-0.5)*GW*cell,(0.5-eye[1])*GH*cell,zPlane)}};
-  const mat=new THREE.RawShaderMaterial({uniforms:uni,vertexShader:P_VERT,fragmentShader:P_FRAG,
-    transparent:true,depthWrite:false,depthTest:false,blending:THREE.NormalBlending});
-  const obj=new THREE.Points(g,mat); obj.frustumCulled=false; obj.renderOrder=10; scene.add(obj);
-  return {obj,uni,eyeWorld:uni.uEye.value.clone()};
-}
-
-/* ===================== timeline ===================== */
-let coupleA=null, coreHer=null, coupleB=null, cinematic=false;
-let KF=[{s:0,p:[0,0,190],l:[0,0,0]},{s:1,p:[0,0,190],l:[0,0,0]}];
-function buildKeyframes(){
-  if(!cinematic){ KF=[{s:0,p:[0,0,10],l:[0,0,CORE_Z]},{s:1,p:[0,0,CORE_Z+22],l:[0,0,CORE_Z]}]; return; }
-  const A=coupleA.eyeWorld, B=coreHer.eyeWorld;
-  KF=[
-    {s:0.00,p:[0,0,190],l:[0,0,0]},        // couple photo, sharp & full
-    {s:0.14,p:[0,0,168],l:[0,0,0]},        // gentle push, still whole photo
-    {s:0.26,p:[A.x*0.7,A.y*0.7,60],l:[A.x,A.y,0]},   // move to your eye
-    {s:0.38,p:[A.x,A.y,-14],l:[A.x,A.y,-70]},        // dive through your eye
-    {s:0.48,p:[0,0,CORE_Z+170],l:[0,0,CORE_Z]},      // inside nebula
-    {s:0.60,p:[0,0,CORE_Z+30],l:[0,0,CORE_Z]},       // at the core (her forms)
-    {s:0.72,p:[0,0,CORE_Z-70],l:[B.x,B.y,HER_Z]},    // turn toward her photo
-    {s:0.84,p:[B.x*0.7,B.y*0.7,HER_Z+60],l:[B.x,B.y,HER_Z]}, // move to her eye
-    {s:0.93,p:[B.x,B.y,HER_Z-14],l:[B.x,B.y,HER_Z-70]},      // dive through her eye
-    {s:1.00,p:[0,0,END_Z+165],l:[0,0,END_Z]},        // land on couple photo
-  ];
-}
-const _p=new THREE.Vector3(), _l=new THREE.Vector3();
-function cameraAt(s){
-  if(!KF.length) return;
-  let a=KF[0], b=KF[KF.length-1];
-  for(let i=0;i<KF.length-1;i++){ if(s>=KF[i].s && s<=KF[i+1].s){ a=KF[i]; b=KF[i+1]; break; } }
-  const t=smooth(a.s,b.s,s);
-  _p.set(lerp(a.p[0],b.p[0],t),lerp(a.p[1],b.p[1],t),lerp(a.p[2],b.p[2],t));
-  _l.set(lerp(a.l[0],b.l[0],t),lerp(a.l[1],b.l[1],t),lerp(a.l[2],b.l[2],t));
-  camera.position.copy(_p); camera.lookAt(_l);
-}
-
-/* ===================== 360° nebula rotation (drag) ===================== */
-let yaw=0, yawV=0, pitch=0, pitchV=0, dragging=false, lx=0, ly=0;
+/* ===================== camera: 360 orbit + scroll fly-in ===================== */
+let az=0, targetPolar=1.35, polar=1.35, radius=FAR_R, targetRadius=FAR_R, azV=0, polarV=0, dragging=false, lx=0, ly=0;
+const AUTO=CONFIG.spin?0.05:0;
+function onScroll(){ const H=document.documentElement.scrollHeight-innerHeight;
+  const r=H>0?clamp(scrollY/H,0,1):0; const e=r<.5?2*r*r:1-Math.pow(-2*r+2,2)/2; targetRadius=FAR_R+(CORE_R-FAR_R)*e; }
+addEventListener('scroll',onScroll,{passive:true});
 addEventListener('pointerdown',e=>{ if(e.target.closest('button,input'))return; dragging=true; lx=e.clientX; ly=e.clientY; });
-addEventListener('pointermove',e=>{ if(!dragging)return; yawV+=-(e.clientX-lx)*0.0011; pitchV+=-(e.clientY-ly)*0.0007; lx=e.clientX; ly=e.clientY; });
+addEventListener('pointermove',e=>{ if(!dragging)return; azV+=-(e.clientX-lx)*0.005; polarV+=-(e.clientY-ly)*0.005; lx=e.clientX; ly=e.clientY; });
 addEventListener('pointerup',()=>dragging=false); addEventListener('pointercancel',()=>dragging=false);
 
-let sTarget=0, sSmooth=0;
-function onScroll(){ const H=document.documentElement.scrollHeight-innerHeight; sTarget=H>0?clamp(scrollY/H,0,1):0; }
-addEventListener('scroll',onScroll,{passive:true});
-const captions=[...document.querySelectorAll('.caption')];
+new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting)e.target.classList.add('seen'); }),{threshold:.2})
+  .observe(document.querySelector('.hero'));
+document.querySelectorAll('article').forEach(a=>new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting)e.target.classList.add('seen'); }),{threshold:.25}).observe(a));
 
 function resize(){ renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight,false);
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
@@ -283,31 +229,15 @@ addEventListener('resize',resize);
 
 renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),0.05); uTime.value+=dt;
-  sSmooth+=(sTarget-sSmooth)*0.07; const s=sSmooth;
   let target=0;
   if(analyser){ analyser.getByteFrequencyData(freq); let b=0; for(let i=0;i<10;i++)b+=freq[i]; target=Math.min(1,(b/(10*255))*1.4); }
   else target=0.35+0.25*Math.sin(uTime.value*1.6);
   pulseSmooth+=(target-pulseSmooth)*(target>pulseSmooth?0.35:0.08); uPulse.value=pulseSmooth;
-
-  cameraAt(s);
-  uNebFade.value = cinematic ? (smooth(0.40,0.52,s)*(1-smooth(0.66,0.76,s))) : 1;
-
-  // 360 rotation: drag tumbles the nebula (full yaw, limited pitch) + gentle auto-spin
-  yaw+=yawV+0.0018; yawV*=0.92; pitch=clamp(pitch+pitchV,-0.9,0.9); pitchV*=0.9;
-  if(galaxy){ galaxy.rotation.y=yaw; galaxy.rotation.x=pitch; }
-  if(ambient){ ambient.haze.rotation.y=yaw*0.7; ambient.haze.rotation.x=pitch*0.7;
-    ambient.haze.material.opacity=(0.38+0.34*pulseSmooth)*(cinematic?uNebFade.value:1);
-    ambient.core.children.forEach(sp=>{ sp.scale.setScalar(sp.userData.base*(1+pulseSmooth*0.55));
-      sp.material.opacity=sp.userData.op*(0.7+pulseSmooth*0.7)*(cinematic?uNebFade.value:1); }); }
-
-  // portraits: start SHARP, dissolve into your eye; her forms at core then dissolves into her eye; couple reassembles
-  if(coupleA){ coupleA.uni.uScatter.value=smooth(0.14,0.36,s)*0.5; coupleA.uni.uInhale.value=smooth(0.24,0.40,s); coupleA.uni.uFade.value=1-smooth(0.30,0.40,s); }
-  if(coreHer){ coreHer.uni.uScatter.value=(1-smooth(0.56,0.70,s))+smooth(0.82,0.93,s)*0.5;
-    coreHer.uni.uInhale.value=smooth(0.82,0.93,s); coreHer.uni.uFade.value=smooth(0.56,0.68,s)*(1-smooth(0.87,0.94,s)); }
-  if(coupleB){ coupleB.uni.uScatter.value=1-smooth(0.90,1.0,s); coupleB.uni.uFade.value=smooth(0.90,0.99,s); }
-
-  captions.forEach(c=>{ const f=+c.dataset.from,t=+c.dataset.to; c.classList.toggle('show', s>=f&&s<=t); });
-  document.getElementById('cue').style.opacity = s<0.03?0.6:0;
+  radius+=(targetRadius-radius)*0.06;
+  az+=AUTO*dt+azV; azV*=0.9; polar=clamp(polar+polarV,0.25,2.9); polarV*=0.9;
+  const sp=Math.sin(polar); camera.position.set(radius*sp*Math.cos(az),radius*Math.cos(polar),radius*sp*Math.sin(az)); camera.lookAt(0,0,0);
+  if(ambient){ ambient.haze.rotation.y+=dt*0.02; ambient.haze.material.opacity=0.38+0.34*pulseSmooth;
+    ambient.core.children.forEach(s=>{ s.scale.setScalar(s.userData.base*(1+pulseSmooth*0.55)); s.material.opacity=s.userData.op*(0.7+pulseSmooth*0.7); }); }
   renderer.render(scene,camera);
 });
 
@@ -320,27 +250,18 @@ function reveal(){ document.body.classList.add('entered'); gate.classList.add('h
 async function tryUnlock(){
   startMusicNow(); errEl.textContent=''; unlockBtn.disabled=true;
   if(demo){ const imgs=[]; for(let i=0;i<(MOBILE?150:190);i++) imgs.push(placeholderThumb(i,128));
-    buildNebula(await buildAtlas(imgs)); cinematic=false; buildKeyframes(); reveal(); return; }
+    buildNebula(await buildAtlas(imgs)); reveal(); return; }
   const pw=pwEl.value; if(!pw){ unlockBtn.disabled=false; return; }
   unlockBtn.textContent='unlocking…';
   try{
     const key=await deriveKey(pw,b64ToU8(vault.salt),vault.iter);
     try{ if(new TextDecoder().decode(await dec(key,vault.check))!==CHECK) throw 0; }
     catch{ errEl.textContent='That isn\u2019t the word. Try again.'; unlockBtn.disabled=false; unlockBtn.textContent='unlock'; return; }
-    let coupleImg=null, herImg=null;
-    if(vault.cover){ try{ coupleImg=await bytesToImage(await dec(key,vault.cover)); }catch(_){}}
-    if(vault.closing){ try{ herImg=await bytesToImage(await dec(key,vault.closing)); }catch(_){}}
-    if(coupleImg){
-      coupleA=buildPortrait(coupleImg,(vault.cover&&vault.cover.eye)||[0.5,0.42],0);
-      coupleB=buildPortrait(coupleImg,[0.5,0.5],END_Z);
-      coreHer=buildPortrait(herImg||coupleImg,(vault.closing&&vault.closing.eye)||[0.5,0.42],HER_Z);
-      cinematic=true;
-    }
     const items=vault.items.slice(0,CONFIG.maxPhotos), imgs=[];
     for(let i=0;i<items.length;i++){ unlockBtn.textContent=`opening… ${Math.round((i+1)/items.length*100)}%`;
       try{ imgs.push(await bytesToImage(await dec(key,items[i]))); }catch(_){} }
     if(!imgs.length){ errEl.textContent='No photos found in the vault.'; unlockBtn.disabled=false; unlockBtn.textContent='unlock'; return; }
-    buildNebula(await buildAtlas(imgs)); buildKeyframes(); reveal();
+    buildNebula(await buildAtlas(imgs)); reveal();
   }catch(e){ errEl.textContent='Something went wrong opening it.'; unlockBtn.disabled=false; unlockBtn.textContent='unlock'; }
 }
 unlockBtn.addEventListener('click',tryUnlock);
