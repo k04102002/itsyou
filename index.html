@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="robots" content="noindex, nofollow" />
+<title>For you</title>
+
+<!--
+==================================================================================
+  THE NEBULA (viewer) — this is the file you HOST and send as a link.
+==================================================================================
+  How the pieces fit:
+    1. Run  encrypt.html  on your computer -> it makes  vault.json  (her locked photos).
+    2. Put  index.html  +  vault.json  (+ optional song.mp3) in a GitHub repo.
+    3. Turn on GitHub Pages. Send her the link + tell her the password privately.
+
+  Safety: her photos live only inside the encrypted vault.json. This page asks for the
+  password and decrypts them IN HER BROWSER — they're never uploaded, never written to
+  disk, and unreadable to anyone without the password. No tracking, no analytics.
+
+  THE SONG (optional): put song.mp3 next to this file and set  song:'song.mp3'  below.
+  YOUR WORDS: edit the <article> text in the <body>. Replace [your name].
+
+  Testing note: if you open this by double-clicking locally, the browser blocks reading
+  vault.json, so you'll see a placeholder preview. It works fully once on GitHub Pages.
+==================================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+
+<style>
+  :root{ --bg:#07040e; --ink:#f4ecff; --violet:#8b5cf6; --magenta:#d946ef; --pink:#f472b6; --lilac:#e9d5ff;
+    --glass:rgba(30,16,48,.5); --glow:rgba(190,120,255,.25); }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body:not(.entered){ overflow:hidden; height:100vh; }
+  body{ background:var(--bg); color:var(--ink); font-family:'Space Grotesk',system-ui,sans-serif;
+    display:flex; flex-flow:column; align-items:center; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+    user-select:none; -webkit-user-select:none; touch-action:pan-y; }
+  canvas#scene{ position:fixed; inset:0; z-index:-2; display:block; width:100%; height:100vh; }
+  .vignette{ position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:radial-gradient(75% 60% at 50% 48%, transparent 52%, rgba(3,1,8,.72) 100%); }
+  .grad{ background:linear-gradient(100deg,var(--violet),var(--magenta) 45%,var(--pink));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+  .hero{ min-height:100vh; width:100%; display:flex; flex-flow:column; align-items:center; justify-content:center;
+    text-align:center; gap:.5rem; padding:2rem; pointer-events:none; }
+  .hero h1{ font-weight:700; margin:0; font-size:clamp(2.6rem,10vmin,6rem); line-height:1; letter-spacing:-.02em;
+    filter:drop-shadow(0 6px 40px var(--glow)); }
+  .hero .sub{ color:var(--lilac); opacity:.8; font-size:clamp(1rem,2.6vmin,1.3rem); letter-spacing:.05em; }
+  .cue{ margin-top:2rem; color:var(--pink); font-size:.82rem; letter-spacing:.26em; text-transform:uppercase;
+    opacity:.65; animation:bob 2.6s ease-in-out infinite; }
+  .cue::after{ content:"\2193"; display:block; margin-top:.35rem; font-size:1.1rem; }
+  @keyframes bob{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(7px);opacity:1}}
+
+  article{ width:min(90vw,32rem); padding:1.9rem 2.2rem; margin:70vh auto; position:relative;
+    background:linear-gradient(180deg,rgba(48,26,70,.42),rgba(22,12,34,.55));
+    border:1px solid rgba(233,213,255,.2); border-radius:20px;
+    box-shadow:0 24px 70px -26px rgba(0,0,0,.85), 0 0 60px -14px var(--glow), inset 0 1px 0 rgba(255,255,255,.05);
+    backdrop-filter:blur(9px); font-weight:300; line-height:1.7; font-size:clamp(1.08rem,2.5vmin,1.35rem);
+    opacity:0; transform:translateY(26px); transition:opacity .9s ease, transform .9s ease; }
+  article.seen{ opacity:1; transform:none; }
+  article h2{ font-weight:700; font-size:1.1em; margin:0 0 .5rem; }
+  article.finale{ text-align:center; }
+  .sig{ font-family:'Caveat',cursive; font-size:1.7em; display:block; margin-top:.4rem; }
+  .tail{ height:60vh; }
+
+  /* password / begin gate */
+  #gate{ position:fixed; inset:0; z-index:30; display:flex; flex-flow:column; align-items:center; justify-content:center;
+    gap:1.3rem; text-align:center; padding:2rem;
+    background:radial-gradient(80% 60% at 50% 42%, rgba(24,12,40,.6), rgba(4,2,10,.95)); backdrop-filter:blur(6px);
+    transition:opacity 1s ease; }
+  #gate.hide{ opacity:0; pointer-events:none; }
+  #gate .title{ font-weight:700; font-size:clamp(2.4rem,9vmin,5rem); line-height:1; }
+  #gate .hint{ color:var(--lilac); opacity:.78; letter-spacing:.03em; max-width:22rem; }
+  #pw{ width:min(80vw,20rem); padding:.8rem 1rem; border-radius:14px; border:1px solid rgba(233,213,255,.35);
+    background:rgba(0,0,0,.3); color:var(--ink); font:inherit; text-align:center; }
+  #unlock{ font:inherit; font-weight:500; letter-spacing:.06em; color:var(--ink); padding:.85rem 2.4rem; border-radius:999px;
+    cursor:pointer; background:linear-gradient(100deg,rgba(139,92,246,.3),rgba(217,70,239,.3));
+    border:1px solid rgba(233,213,255,.5); transition:transform .2s ease; }
+  #unlock:hover{ transform:translateY(-2px); } #unlock:disabled{ opacity:.6; cursor:default; }
+  #err{ color:#ffb4c6; min-height:1.2em; font-size:.9rem; }
+
+  #audioBtn{ position:fixed; right:16px; bottom:16px; z-index:20; width:46px; height:46px; border-radius:50%;
+    display:none; align-items:center; justify-content:center; cursor:pointer; color:var(--ink);
+    background:var(--glass); border:1px solid rgba(233,213,255,.3); backdrop-filter:blur(8px);
+    box-shadow:0 6px 24px -8px rgba(0,0,0,.7); }
+  body.entered #audioBtn{ display:flex; } #audioBtn svg{ width:20px; height:20px; }
+
+  :focus-visible{ outline:2px solid var(--pink); outline-offset:3px; border-radius:6px; }
+  @media (prefers-reduced-motion: reduce){ #unlock,.cue{animation:none} article{transition:none;opacity:1;transform:none} }
+</style>
+</head>
+<body>
+
+  <canvas id="scene"></canvas>
+  <div class="vignette"></div>
+
+  <div id="gate">
+    <div class="title grad">For you</div>
+    <div class="hint" id="hint">Type the word only the two of us know.</div>
+    <input id="pw" type="password" placeholder="password" autocomplete="off" />
+    <button id="unlock" disabled>preparing…</button>
+    <div id="err"></div>
+  </div>
+  <button id="audioBtn" aria-label="Toggle music"></button>
+
+  <!-- ===== YOUR WORDS ===== -->
+  <section class="hero">
+    <h1 class="grad">Look up</h1>
+    <div class="sub">every star here is you</div>
+    <div class="cue">scroll to fall in</div>
+  </section>
+  <article><h2>All of you, at once</h2>Hundreds of little moments of you, glowing in the dark. Spin it. Take your time.</article>
+  <article><h2>Falling in</h2>Keep going — you're moving through them now, toward the light at the center.</article>
+  <article class="finale"><h2>This is how I see you</h2>A whole universe, and every part of it is you.
+    <span class="sig grad">Always yours,</span><span class="sig grad">[your name]</span></article>
+  <div class="tail"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===================== CONFIG ===================== */
+const CONFIG = {
+  vaultFile: 'vault.json',   // the encrypted photos made by encrypt.html
+  song:      '',             // e.g. 'song.mp3'  ('' = silence)
+  songVolume:0.65,
+  spin:      true,
+  colorGrade:0.14,
+  maxPhotos: 500,
+};
+const CHECK='nebula-of-you';
+
+/* ===================== crypto ===================== */
+const b64ToU8=s=>{const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;};
+async function deriveKey(pw,salt,iter){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+}
+const dec=(key,rec)=>crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToU8(rec.iv)},key,b64ToU8(rec.data));
+
+/* ===================== 3D engine ===================== */
+const MOBILE=matchMedia('(max-width:820px)').matches;
+const SHELL=120, FAR_R=330, CORE_R=5;
+const cvs=document.getElementById('scene');
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const renderer=new THREE.WebGLRenderer({canvas:cvs,alpha:true,antialias:!MOBILE});
+renderer.setClearAlpha(0);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.5,4000);
+const clock=new THREE.Clock();
+const uPulse={value:0}, uTime={value:0}, uCell={value:new THREE.Vector2(1,1)};
+
+function discTexture(){ const s=64,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
+  const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g;x.beginPath();x.arc(s/2,s/2,s/2,0,7);x.fill();return new THREE.CanvasTexture(c); }
+const DISC=discTexture();
+
+function placeholderThumb(i,size){ const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');
+  const hue=(255+i*29)%360; const g=x.createRadialGradient(size*.4,size*.35,size*.05,size*.5,size*.5,size*.8);
+  g.addColorStop(0,`hsl(${hue} 75% 74%)`);g.addColorStop(1,`hsl(${(hue+28)%360} 60% 30%)`);
+  x.fillStyle=g;x.fillRect(0,0,size,size); x.fillStyle='rgba(255,255,255,.16)';
+  x.beginPath();x.arc(size*.5,size*.42,size*.15,0,7);x.fill();
+  x.beginPath();x.ellipse(size*.5,size*.86,size*.27,size*.19,0,Math.PI,0);x.fill(); return c; }
+function loadImage(url){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});}
+
+async function buildAtlas(sources){
+  const N=sources.length, CELL=N>300?96:128, PAD=4, STRIDE=CELL+PAD;
+  const cols=Math.ceil(Math.sqrt(N)), rows=Math.ceil(N/cols), cw=cols*STRIDE, ch=rows*STRIDE;
+  const c=document.createElement('canvas');c.width=cw;c.height=ch;const x=c.getContext('2d');
+  const offsets=[];
+  for(let i=0;i<N;i++){ const ax=i%cols,ay=(i/cols)|0,px=ax*STRIDE+PAD/2,py=ay*STRIDE+PAD/2;
+    const img=sources[i],sc=Math.max(CELL/img.width,CELL/img.height),dw=img.width*sc,dh=img.height*sc;
+    x.drawImage(img,px+(CELL-dw)/2,py+(CELL-dh)/2,dw,dh); offsets.push([px/cw,1-(py+CELL)/ch]); }
+  const tex=new THREE.CanvasTexture(c); tex.generateMipmaps=false; tex.minFilter=tex.magFilter=THREE.LinearFilter;
+  tex.wrapS=tex.wrapT=THREE.ClampToEdgeWrapping; uCell.value.set(CELL/cw,CELL/ch);
+  return {texture:tex,offsets,count:N};
+}
+
+const VERT=`precision highp float;
+uniform mat4 projectionMatrix, viewMatrix, modelMatrix;
+attribute vec3 position; attribute vec2 uv;
+attribute vec3 iPos; attribute float iScale; attribute vec2 iOff; attribute float iSeed; attribute vec3 iColor;
+uniform vec2 uCell; uniform float uPulse; uniform float uTime; uniform float uSizeMul;
+varying vec2 vUv; varying vec2 vCorner; varying vec3 vColor;
+void main(){ vCorner=position.xy; vUv=iOff+uv*uCell; vColor=iColor;
+  vec3 c=iPos; float t=uTime*0.12+iSeed*6.2831; c+=vec3(sin(t),cos(t*1.13),sin(t*0.7))*2.0;
+  vec4 mv=viewMatrix*modelMatrix*vec4(c,1.0); mv.xy+=position.xy*(iScale*uSizeMul*(1.0+uPulse*0.4));
+  gl_Position=projectionMatrix*mv; }`;
+const FRAG_PHOTO=`precision highp float;
+uniform sampler2D map; uniform float uGrade; uniform vec3 uGradeColor; uniform float uPulse;
+varying vec2 vUv; varying vec2 vCorner;
+void main(){ float d=length(vCorner)*2.0; if(1.0-smoothstep(0.86,1.0,d)<0.5) discard;
+  vec3 col=texture2D(map,vUv).rgb; col=mix(col,col*uGradeColor,uGrade); col+=col*uPulse*0.3; gl_FragColor=vec4(col,1.0); }`;
+const FRAG_HALO=`precision highp float;
+uniform float uPulse; uniform float uOpacity; varying vec2 vCorner; varying vec3 vColor;
+void main(){ float d=length(vCorner)*2.0; float a=pow(clamp(1.0-d,0.0,1.0),2.0);
+  gl_FragColor=vec4(vColor*(0.7+uPulse*0.9), a*uOpacity*(0.65+uPulse*0.6)); }`;
+
+const PALETTE=[[0.55,0.4,1.0],[0.85,0.35,0.95],[0.98,0.55,0.85],[0.6,0.7,1.0],[0.8,0.6,1.0]];
+let galaxy=null;
+function disposeGalaxy(){ if(!galaxy)return; galaxy.traverse(o=>{o.geometry&&o.geometry.dispose();o.material&&o.material.dispose();}); scene.remove(galaxy); galaxy=null; }
+function buildNebula(atlas){
+  disposeGalaxy(); const N=atlas.count;
+  const iPos=new Float32Array(N*3),iScale=new Float32Array(N),iOff=new Float32Array(N*2),iSeed=new Float32Array(N),iColor=new Float32Array(N*3);
+  for(let i=0;i<N;i++){ const u=Math.random()*2-1,th=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u);
+    let dx=r*Math.cos(th),dy=u,dz=r*Math.sin(th); let rad=SHELL*(0.5+Math.random()*0.6);
+    if(Math.random()<0.16) rad*=1.25+Math.random()*0.6;
+    if(Math.random()<0.14){ rad=SHELL*(0.18+Math.random()*0.12); dy*=0.35; }
+    iPos[i*3]=dx*rad;iPos[i*3+1]=dy*rad;iPos[i*3+2]=dz*rad;
+    const hero=Math.random()<0.08; iScale[i]=(hero?9:4.5)+Math.random()*3.5;
+    const o=atlas.offsets[i]; iOff[i*2]=o[0]; iOff[i*2+1]=o[1]; iSeed[i]=Math.random();
+    const p=PALETTE[(Math.random()*PALETTE.length)|0]; iColor[i*3]=p[0];iColor[i*3+1]=p[1];iColor[i*3+2]=p[2]; }
+  const quadPos=new Float32Array([-0.5,-0.5,0,0.5,-0.5,0,0.5,0.5,0,-0.5,0.5,0]);
+  const quadUv=new Float32Array([0,0,1,0,1,1,0,1]); const idx=[0,1,2,0,2,3];
+  function makeGeom(){ const g=new THREE.InstancedBufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(quadPos,3)); g.setAttribute('uv',new THREE.BufferAttribute(quadUv,2)); g.setIndex(idx);
+    g.setAttribute('iPos',new THREE.InstancedBufferAttribute(iPos,3)); g.setAttribute('iScale',new THREE.InstancedBufferAttribute(iScale,1));
+    g.setAttribute('iOff',new THREE.InstancedBufferAttribute(iOff,2)); g.setAttribute('iSeed',new THREE.InstancedBufferAttribute(iSeed,1));
+    g.setAttribute('iColor',new THREE.InstancedBufferAttribute(iColor,3)); return g; }
+  const grp=new THREE.Group();
+  const haloMat=new THREE.RawShaderMaterial({ uniforms:{uCell,uPulse,uTime,uSizeMul:{value:2.7},uOpacity:{value:0.5}},
+    vertexShader:VERT,fragmentShader:FRAG_HALO,transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending});
+  const halo=new THREE.Mesh(makeGeom(),haloMat); halo.frustumCulled=false; grp.add(halo);
+  const photoMat=new THREE.RawShaderMaterial({ uniforms:{map:{value:atlas.texture},uCell,uPulse,uTime,uSizeMul:{value:1.0},
+    uGrade:{value:CONFIG.colorGrade},uGradeColor:{value:new THREE.Vector3(0.72,0.55,1.0)}},
+    vertexShader:VERT,fragmentShader:FRAG_PHOTO,transparent:false,depthTest:true,depthWrite:true});
+  const photos=new THREE.Mesh(makeGeom(),photoMat); photos.frustumCulled=false; grp.add(photos);
+  scene.add(grp); galaxy=grp;
+}
+
+let ambient=null;
+function addAmbient(){
+  const HN=MOBILE?1600:3600; const hp=new Float32Array(HN*3),hc=new Float32Array(HN*3),col=new THREE.Color();
+  for(let i=0;i<HN;i++){ const u=Math.random()*2-1,th=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u);
+    let rad=SHELL*(0.35+Math.random()*0.8); if(Math.random()<0.25) rad*=1.3+Math.random()*0.7;
+    hp[i*3]=r*Math.cos(th)*rad;hp[i*3+1]=u*rad;hp[i*3+2]=r*Math.sin(th)*rad;
+    const p=PALETTE[(Math.random()*PALETTE.length)|0]; col.setRGB(p[0],p[1],p[2]); hc[i*3]=col.r;hc[i*3+1]=col.g;hc[i*3+2]=col.b; }
+  const hg=new THREE.BufferGeometry(); hg.setAttribute('position',new THREE.BufferAttribute(hp,3)); hg.setAttribute('color',new THREE.BufferAttribute(hc,3));
+  const haze=new THREE.Points(hg,new THREE.PointsMaterial({size:MOBILE?9:7,map:DISC,vertexColors:true,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));
+  haze.frustumCulled=false; scene.add(haze);
+  const SN=MOBILE?900:1700,sp=new Float32Array(SN*3);
+  for(let i=0;i<SN;i++){ const u=Math.random()*2-1,th=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u),rad=500+Math.random()*1100;
+    sp[i*3]=r*Math.cos(th)*rad;sp[i*3+1]=u*rad;sp[i*3+2]=r*Math.sin(th)*rad; }
+  const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+  scene.add(new THREE.Points(sg,new THREE.PointsMaterial({size:2.4,map:DISC,color:0xe9d5ff,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending})));
+  for(let i=0;i<8;i++){ const p=PALETTE[(Math.random()*PALETTE.length)|0];
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:DISC,color:new THREE.Color(p[0],p[1],p[2]),transparent:true,opacity:.25,blending:THREE.AdditiveBlending,depthWrite:false}));
+    const u=Math.random()*2-1,th=Math.random()*Math.PI*2,r=Math.sqrt(1-u*u),rad=700+Math.random()*700;
+    s.position.set(r*Math.cos(th)*rad,u*rad,r*Math.sin(th)*rad); s.scale.setScalar(60+Math.random()*80); scene.add(s); }
+  const core=new THREE.Group();
+  [[0xffffff,34,.9],[0xe9b8ff,80,.6],[0xd946ef,150,.35],[0x8b5cf6,260,.18]].forEach(([c,sz,op])=>{
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:DISC,color:c,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false}));
+    sp.scale.setScalar(sz); sp.userData={base:sz,op}; core.add(sp); });
+  scene.add(core); ambient={haze,core};
+}
+
+/* camera */
+let az=0,targetPolar=1.35,polar=1.35,radius=FAR_R,targetRadius=FAR_R,azInertia=0;
+const AUTO=CONFIG.spin&&!reduceMotion?0.06:0;
+function updateScroll(){ const H=document.documentElement.scrollHeight-innerHeight;
+  const s=H>0?Math.min(1,Math.max(0,scrollY/H)):0; const e=s<.5?2*s*s:1-Math.pow(-2*s+2,2)/2;
+  targetRadius=FAR_R+(CORE_R-FAR_R)*e; }
+addEventListener('scroll',updateScroll,{passive:true});
+let dragging=false,lx=0,ly=0,isMouse=false;
+addEventListener('pointerdown',e=>{ if(e.target.closest('button,input'))return; dragging=true; isMouse=e.pointerType==='mouse'; lx=e.clientX; ly=e.clientY; });
+addEventListener('pointermove',e=>{ if(!dragging)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+  azInertia+=-dx*0.0009; if(isMouse) targetPolar=Math.min(2.85,Math.max(0.3,targetPolar-dy*0.004)); });
+addEventListener('pointerup',()=>dragging=false); addEventListener('pointercancel',()=>dragging=false);
+
+/* music */
+const ICON_PLAY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+const ICON_MUTE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><line x1="3" y1="3" x2="21" y2="21"/></svg>';
+const audioBtn=document.getElementById('audioBtn');
+let audio=null,analyser=null,freq=null,pulseSmooth=0;
+function setupAudio(){ if(!CONFIG.song)return; audio=new Audio(CONFIG.song); audio.loop=true; audio.volume=0; audioBtn.innerHTML=ICON_PLAY;
+  audioBtn.onclick=()=>{ if(!audio)return; if(audio.paused){audio.play().catch(()=>{});audioBtn.innerHTML=ICON_PLAY;} else{audio.pause();audioBtn.innerHTML=ICON_MUTE;} }; }
+function startAudio(){ if(!audio)return;
+  try{ const Ctx=window.AudioContext||window.webkitAudioContext; const actx=new Ctx();
+    const src=actx.createMediaElementSource(audio); analyser=actx.createAnalyser(); analyser.fftSize=256; analyser.smoothingTimeConstant=0.82;
+    src.connect(analyser); analyser.connect(actx.destination); freq=new Uint8Array(analyser.frequencyBinCount); actx.resume(); }catch(e){}
+  audio.play().then(()=>{ const tgt=CONFIG.songVolume; const id=setInterval(()=>{ audio.volume=Math.min(tgt,audio.volume+0.03); if(audio.volume>=tgt)clearInterval(id); },80); }).catch(()=>{}); }
+
+function resize(){ renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight,false);
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize);
+
+renderer.setAnimationLoop(()=>{ const dt=Math.min(clock.getDelta(),0.05); uTime.value+=dt;
+  let target=0;
+  if(analyser){ analyser.getByteFrequencyData(freq); let b=0; for(let i=0;i<10;i++)b+=freq[i]; target=Math.min(1,(b/(10*255))*1.4); }
+  else target=0.35+0.25*Math.sin(uTime.value*1.6);
+  pulseSmooth+=(target-pulseSmooth)*(target>pulseSmooth?0.35:0.08); uPulse.value=pulseSmooth;
+  radius+=(targetRadius-radius)*0.06; az+=AUTO*dt+azInertia; azInertia*=0.90; polar+=(targetPolar-polar)*0.1;
+  const sp=Math.sin(polar); camera.position.set(radius*sp*Math.cos(az),radius*Math.cos(polar),radius*sp*Math.sin(az)); camera.lookAt(0,0,0);
+  if(ambient){ ambient.haze.rotation.y+=dt*0.02; ambient.haze.material.opacity=0.4+0.35*pulseSmooth;
+    ambient.core.children.forEach(s=>{ s.scale.setScalar(s.userData.base*(1+pulseSmooth*0.55)); s.material.opacity=s.userData.op*(0.7+pulseSmooth*0.7); }); }
+  renderer.render(scene,camera); });
+
+document.querySelectorAll('.hero,article').forEach(a=>new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting)e.target.classList.add('seen'); }),{threshold:.2}).observe(a));
+
+/* ===================== gate / unlock ===================== */
+const gate=document.getElementById('gate'), pwEl=document.getElementById('pw'),
+      unlockBtn=document.getElementById('unlock'), errEl=document.getElementById('err'), hintEl=document.getElementById('hint');
+let vault=null, demo=false;
+
+function reveal(){ document.body.classList.add('entered'); gate.classList.add('hide'); setTimeout(()=>gate.remove(),1100); updateScroll(); }
+
+async function tryUnlock(){
+  errEl.textContent=''; unlockBtn.disabled=true;
+  if(demo){ // no vault -> placeholder preview
+    const imgs=[]; for(let i=0;i<(MOBILE?150:190);i++) imgs.push(placeholderThumb(i,128));
+    buildNebula(await buildAtlas(imgs)); startAudio(); reveal(); return;
+  }
+  const pw=pwEl.value; if(!pw){ unlockBtn.disabled=false; return; }
+  unlockBtn.textContent='unlocking…';
+  try{
+    const key=await deriveKey(pw, b64ToU8(vault.salt), vault.iter);
+    // verify password on the small check token first
+    try{ const v=new TextDecoder().decode(await dec(key,vault.check)); if(v!==CHECK) throw 0; }
+    catch{ errEl.textContent='That isn\u2019t the word. Try again.'; unlockBtn.disabled=false; unlockBtn.textContent='unlock'; return; }
+    // decrypt every photo (in memory only)
+    const items=vault.items.slice(0,CONFIG.maxPhotos); const imgs=[];
+    for(let i=0;i<items.length;i++){
+      unlockBtn.textContent=`opening… ${Math.round((i+1)/items.length*100)}%`;
+      const buf=await dec(key,items[i]); const url=URL.createObjectURL(new Blob([buf],{type:'image/jpeg'}));
+      try{ imgs.push(await loadImage(url)); }catch(_){}
+      URL.revokeObjectURL(url);
+    }
+    if(!imgs.length){ errEl.textContent='No photos found in the vault.'; unlockBtn.disabled=false; unlockBtn.textContent='unlock'; return; }
+    buildNebula(await buildAtlas(imgs));
+    startAudio(); reveal();
+  }catch(e){ errEl.textContent='Something went wrong opening it.'; unlockBtn.disabled=false; unlockBtn.textContent='unlock'; }
+}
+unlockBtn.addEventListener('click',tryUnlock);
+pwEl.addEventListener('keydown',e=>{ if(e.key==='Enter') tryUnlock(); });
+
+/* ===================== boot ===================== */
+(async function init(){
+  resize(); setupAudio(); addAmbient();
+  if(!(window.crypto&&crypto.subtle)){ demo=true; }
+  else{
+    try{ const r=await fetch(CONFIG.vaultFile,{cache:'no-store'}); if(!r.ok) throw 0; vault=await r.json(); if(!vault.items) throw 0; }
+    catch{ demo=true; }
+  }
+  if(demo){ hintEl.textContent='Preview mode — add vault.json to lock it with a password.'; pwEl.style.display='none'; unlockBtn.textContent='begin'; }
+  else{ unlockBtn.textContent='unlock'; }
+  unlockBtn.disabled=false;
+})();
+</script>
+</body>
+</html>
